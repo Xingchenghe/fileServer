@@ -4,12 +4,13 @@
 
 #include "file.h"
 
-file::file(std::string filename, std::string lastModifiedTime, std::string md5, std::string clientPath, long long size)
+file::file(std::string filename, std::string lastModifiedTime, std::string md5, std::string clientPath, int size,std::string serverPath) :
+serverPath(std::move(serverPath))
 {
-    this->filename = filename;
-    this->lastModifiedTime = lastModifiedTime;
-    this->md5 = md5;
-    this->clientPath = clientPath;
+    this->filename = std::move(filename);
+    this->lastModifiedTime = std::move(lastModifiedTime);
+    this->md5 = std::move(md5);
+    this->clientPath = std::move(clientPath);
     this->size = size;
 }
 
@@ -33,7 +34,11 @@ std::string file::get_clientPath()
     return clientPath;
 }
 
-long long file::get_size()
+int file::get_size()
 {
     return size;
+}
+
+std::string file::get_serverPath() {
+    return serverPath;
 }

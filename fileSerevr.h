@@ -9,6 +9,7 @@
 #include <boost/asio.hpp>
 #include <boost/noncopyable.hpp>
 #include <memory>
+#include <unordered_set>
 using namespace boost::asio;
 class fileSerevr:private boost::noncopyable{
     using TcpAcceptor=boost::asio::ip::tcp::acceptor;
@@ -20,7 +21,7 @@ private:
     void do_accept();
 public:
     fileSerevr()= delete;
-    fileSerevr(io_context& ioContext,short port):m_acceptor(ioContext,TcpEndpoint(ip::tcp::v4(),port)){do_accept();}
+    fileSerevr(io_context& ioContext,unsigned short port):m_acceptor(ioContext,TcpEndpoint(ip::tcp::v4(),port)){do_accept();}
 };
 
 
