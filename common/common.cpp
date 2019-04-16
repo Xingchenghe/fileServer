@@ -20,3 +20,6 @@ std::string errJson::toJson()
     return ss.str();
 }
 
+sessionMgr sessionmgr;
+
+
