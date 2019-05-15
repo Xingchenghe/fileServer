@@ -35,6 +35,7 @@ bool RegisterService::Register()
 }
 
 string RegisterService::resultStr() {
+    boost::property_tree::ptree pt;
     if(successFlag==0)
     {
         pt.put("action",REGISTERSUCCESS);

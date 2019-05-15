@@ -12,7 +12,6 @@
 class SendService
 {
 private:
-    boost::property_tree::ptree pt;
     string path;
     string md5;
 public:

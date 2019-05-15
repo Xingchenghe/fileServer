@@ -28,6 +28,7 @@ bool LoginService::login()
 
 string LoginService::resultStr()
 {
+    boost::property_tree::ptree pt;
     if(successFlag==0)
     {
         pt.put("action",LOGINSUCCESS);

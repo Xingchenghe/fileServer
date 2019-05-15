@@ -1,25 +1,24 @@
 //
-// Created by jiang on 19-4-8.
+// Created by jiang on 19-4-18.
 //
 
-#include "SendService.h"
+#include "ReqFileService.h"
 
-string SendService::sendFail()
+string ReqFileService::reqReady()
 {
     boost::property_tree::ptree pt;
-    pt.put("action",SNDFILEFAIL);
-    pt.put("info","please login first");
+    pt.put("action",REQFILEREADY);
+    pt.put("path",path);
     std::stringstream ss;
     boost::property_tree::write_json(ss,pt);
     return ss.str();
 }
 
-string SendService::sendReady()
+string ReqFileService::reqFail()
 {
     boost::property_tree::ptree pt;
-    pt.put("action",SNDFILEREADY);
+    pt.put("action",REQFILEFAIL);
     pt.put("path",path);
-    pt.put("md5",md5);
     std::stringstream ss;
     boost::property_tree::write_json(ss,pt);
     return ss.str();

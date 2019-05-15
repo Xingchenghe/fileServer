@@ -4,7 +4,7 @@
 
 #include "util.h"
 #include <ctime>
-
+using std::string;
 
 std::string Get_Current_Date()
 {
@@ -38,4 +38,15 @@ std::string Get_File_Md5(std::string filePath)
     delete[] InFileData;
 
     return Temp;
+}
+
+string&   replace_all(string&   str,const   string&   old_value,const   string&   new_value)
+{
+    while(true)   {
+        string::size_type   pos(0);
+        if(   (pos=str.find(old_value))!=string::npos   )
+            str.replace(pos,old_value.length(),new_value);
+        else   break;
+    }
+    return   str;
 }

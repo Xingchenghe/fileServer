@@ -10,6 +10,7 @@
 #include <vector>
 #include "DAO/userFileDAO.h"
 #include "common/Log.h"
+#include "common/util.h"
 using std::vector;
 using namespace boost;
 fileRsver::~fileRsver()
@@ -51,6 +52,7 @@ void fileRsver::handle_file(const fileRsver::Error &error)
 {
     if (error) return print_asio_error(error);
     string clientPath=buffer_;
+    replace_all(clientPath,"\\","/");
     vector<string> result;
     string serverPath=basePath+username;
     split(result,clientPath,is_any_of("/"));

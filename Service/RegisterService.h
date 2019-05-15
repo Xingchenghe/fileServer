@@ -13,7 +13,6 @@ using std::string;
 class RegisterService
 {
 private:
-    boost::property_tree::ptree pt;
     string username;
     string password;
     string salt;

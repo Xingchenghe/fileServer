@@ -12,7 +12,6 @@ using std::string;
 class LoginService
 {
 private:
-    boost::property_tree::ptree pt;
     string username;
     string password;
 public:

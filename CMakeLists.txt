@@ -14,6 +14,7 @@ add_executable(fileServer main.cpp model/file.h model/file.cpp common/md5.h comm
         common/common.cpp fileSender.cpp fileRsver.cpp fileRsver.h fileSender.h fileTransferMgr.cpp fileTransferMgr.h model/User.cpp model/User.h DAO/mysqlConn.h
         DAO/userDAO.h DAO/userDAO.cpp DAO/mysqlConn.cpp Service/LoginService.cpp Service/LoginService.h Service/RegisterService.cpp Service/RegisterService.h DAO/syncdirDAO.cpp
         DAO/syncdirDAO.h model/SyncDir.cpp model/SyncDir.h model/device.cpp model/device.h sessionMgr.cpp sessionMgr.h DAO/deviceDAO.cpp DAO/deviceDAO.h Service/DeviceService.cpp
-        Service/DeviceService.h Service/SendService.cpp Service/SendService.h DAO/deviceFileDAO.cpp DAO/deviceFileDAO.h Service/DeviceFileService.cpp Service/DeviceFileService.h model/userfile.cpp model/userfile.h DAO/userFileDAO.cpp DAO/userFileDAO.h Service/DeleteService.cpp Service/DeleteService.h common/Log.h common/Log.cpp)
+        Service/DeviceService.h Service/SendService.cpp Service/SendService.h DAO/deviceFileDAO.cpp DAO/deviceFileDAO.h Service/DeviceFileService.cpp Service/DeviceFileService.h model/userfile.cpp 
+        model/userfile.h DAO/userFileDAO.cpp DAO/userFileDAO.h Service/DeleteService.cpp Service/DeleteService.h common/Log.h common/Log.cpp Service/ReqFileService.cpp Service/ReqFileService.h)
 ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)
 target_link_libraries(fileServer -lpthread -lboost_system -lboost_filesystem -lboost_log -lboost_log_setup -lboost_thread -lboost_regex -lmysqlcppconn)

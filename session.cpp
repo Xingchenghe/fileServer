@@ -19,7 +19,9 @@
 #include "Service/SendService.h"
 #include "Service/DeviceFileService.h"
 #include "Service/DeleteService.h"
+#include "Service/ReqFileService.h"
 #include "DAO/userFileDAO.h"
+#include "fileSender.h"
 
 using namespace std;
 using namespace boost::filesystem;
@@ -31,7 +33,7 @@ void session::do_read_ctrl()
     socket_.async_read_some(boost::asio::buffer(data_,max_length),
             [this,self](boost::system::error_code ec,std::size_t length)
             {
-                BOOST_LOG_TRIVIAL(trace)<<"read sth,length="<<length<<",data:"<<data_;
+                BOOST_LOG_TRIVIAL(trace)<<"read sth,length="<<length<<",data:"<<endl<<data_;
                 if(!ec)
                 {
                     try
@@ -44,6 +46,7 @@ void session::do_read_ctrl()
                         errJson ej(WRONGJSONFORMAT,"wrong json format");
                         strcpy(data_,ej.toJson().c_str());
                         do_write_ctrl(strlen(data_));
+                        return;
                     }
 
                     if(s_id>max_connection)
@@ -90,7 +93,7 @@ void session::do_read_ctrl()
                             else
                             {
                                 reply=loginService.resultStr();
-                                BOOST_LOG_TRIVIAL(error)<<"device username:"<<username<<",mac_addr:"<<dev_mac<<" logg in fail,fail json:"<<reply;
+                                BOOST_LOG_TRIVIAL(error)<<"device username:"<<username<<",mac_addr:"<<dev_mac<<" logg in fail,fail json:"<<endl<<reply;
                                 strcpy(data_,reply.c_str());
                                 do_write_ctrl(reply.length());
                                 memset(data_,0, sizeof(data_));
@@ -117,7 +120,7 @@ void session::do_read_ctrl()
                         }
                         else if(act==SNDFILE)
                         {
-                            BOOST_LOG_TRIVIAL(trace)<<"device username:"<<username<<",mac_addr:"<<dev_mac<<" enter sndfile,json:"<<data_;
+                            BOOST_LOG_TRIVIAL(trace)<<"device username:"<<username<<",mac_addr:"<<dev_mac<<" enter sndfile,json:"<<endl<<data_;
                             SendService sendService;
                             string reply;
                             if(!isLogin)
@@ -134,16 +137,68 @@ void session::do_read_ctrl()
                                 ufile.setOwner(cmdPt.get<string>("owner"));
                                 ufile.setType(cmdPt.get<int>("type"));
                                 ufile.setLastModifiedTime(cmdPt.get<int>("last_modified_time"));
-                                ufile.setClientPath(cmdPt.get<string>("path"));
+                                string rawpath=cmdPt.get<string>("path");
+                                replace_all(rawpath,"\\","/");
+                                ufile.setClientPath(rawpath);
                                 ufile.setMd5(cmdPt.get<string>("md5"));
-                                BOOST_LOG_TRIVIAL(trace)<<"device username:"<<username<<",mac_addr:"<<dev_mac<<" require to send file to server,file json:"<<data_;
+                                BOOST_LOG_TRIVIAL(trace)<<"device username:"<<username<<",mac_addr:"<<dev_mac<<" require to send file to server,file json:"<<endl<<data_;
                                 reply=sendService.sendReady();
                                 userFileDAO userFileDao;
                                 userFileDao.insertTransFile(ufile);
                                 strcpy(data_,reply.c_str());
                                 do_write_ctrl(reply.length());
                                 memset(data_,0, sizeof(data_));
-                                //TODO
+                            }
+                        }
+                        else if(act==REQFILE)
+                        {
+                            BOOST_LOG_TRIVIAL(trace)<<"device username:"<<username<<",mac_addr:"<<dev_mac<<" enter reqfile,json:"<<endl<<data_;
+                            string reply;
+                            if(!isLogin)
+                            {
+                                reply=LoginService::notLogin();
+                                strcpy(data_,reply.c_str());
+                                do_write_ctrl(reply.length());
+                                memset(data_,0, sizeof(data_));
+                                return;
+                            }
+                            else
+                            {
+                                string localpath=cmdPt.get<string>("path");
+                                string fullpath=basePath+username+localpath;
+                                usr_file_ptr usrFilePtr;
+                                userFileDAO userFileDao;
+                                ReqFileService reqFileService(fullpath);
+                                usrFilePtr=userFileDao.selectByUsernameAndPath(username,localpath);
+                                if(usrFilePtr!= nullptr)
+                                {
+                                    if(is_regular_file(fullpath))
+                                    {
+                                        BOOST_LOG_TRIVIAL(trace)<<"send file to device,username:"<<username<<",mac_addr:"<<dev_mac<<",fullpath:"<<endl<<fullpath;
+                                        reply=reqFileService.reqReady();
+                                        strcpy(data_,reply.c_str());
+                                        do_write_ctrl(reply.length());
+                                        memset(data_,0, sizeof(data_));
+                                        string remote_addr=socket_.remote_endpoint().address().to_string();
+                                        sendfile(socket_.get_io_context(),remote_addr.c_str(),6687, fullpath.c_str());
+                                    }
+                                    else
+                                    {
+                                        BOOST_LOG_TRIVIAL(trace)<<"failed send file to device,username:"<<username<<",mac_addr:"<<dev_mac<<",fullpath:"<<endl<<fullpath;
+                                        reply=reqFileService.reqFail();
+                                        strcpy(data_,reply.c_str());
+                                        do_write_ctrl(reply.length());
+                                        memset(data_,0, sizeof(data_));
+                                    }
+                                }
+                                else
+                                {
+                                    BOOST_LOG_TRIVIAL(trace)<<"failed send file to device,username:"<<username<<",mac_addr:"<<dev_mac<<",fullpath:"<<endl<<fullpath;
+                                    reply=reqFileService.reqFail();
+                                    strcpy(data_,reply.c_str());
+                                    do_write_ctrl(reply.length());
+                                    memset(data_,0, sizeof(data_));
+                                }
                             }
                         }
                         else if(act==REQSERVFILES)

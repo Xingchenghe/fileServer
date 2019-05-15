@@ -24,7 +24,8 @@ void sendfile(boost::asio::io_service& io, const char* ip_address, unsigned port
     typedef boost::asio::ip::tcp TCP;
 
     FILE *fp = fopen(filename, "rb");
-    if (fp == nullptr) {
+    if (fp == nullptr)
+    {
         std::cerr << "cannot open file\n";
         return;
     }
