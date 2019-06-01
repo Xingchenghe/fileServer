@@ -13,9 +13,15 @@
 #include "common/util.h"
 using std::vector;
 using namespace boost;
+using namespace boost::filesystem;
 fileRsver::~fileRsver()
 {
     if (fp_) fclose(fp_);
+    userFileDAO userFileDao;
+    usr_file_ptr usrFilePtr=userFileDao.selectTransFileByUsernameAndPath(username,filepath);
+    last_write_time(fdir,usrFilePtr->get_lastModifiedTime());
+    userFileDao.removeTransFileByUsernameAndPath(username,filepath);
+    userFileDao.insertfile(*usrFilePtr);
     clock_ = clock() - clock_;
     Size_type bytes_writen = total_bytes_writen_;
     if (clock_ == 0) clock_ = 1;
@@ -38,6 +44,8 @@ void fileRsver::handle_header(const fileRsver::Error &error)
 {
     if (error) return print_asio_error(error);
     size_t filename_size = file_info_.filename_size;
+    cout<<file_info_.filesize<<endl;
+    cout<<file_info_.filename_size<<endl;
     if (filename_size > k_buffer_size)
     {
         BOOST_LOG_TRIVIAL(error) << "Path name is too long!\n";
@@ -51,31 +59,20 @@ void fileRsver::handle_header(const fileRsver::Error &error)
 void fileRsver::handle_file(const fileRsver::Error &error)
 {
     if (error) return print_asio_error(error);
+    buffer_[file_info_.filename_size]=0;
     string clientPath=buffer_;
+    cout<<"clientpath:"<<clientPath<<endl;
     replace_all(clientPath,"\\","/");
     vector<string> result;
-    string serverPath=basePath+username;
-    split(result,clientPath,is_any_of("/"));
-    filename=result[result.size()-1];
-    bool find=false;
-    for(int i=0;i<result.size()-1;i++)
-    {
-        if(result[i]==syncdir)
-        {
-            find=true;
-            continue;
-        }
-        if(find)
-        {
-            serverPath+='/'+result[i];
-            filepath+='/'+result[i];
-        }
-    }
+    string serverPath=cfg.getBasePath()+username;
     if(!boost::filesystem::exists(serverPath))
         boost::filesystem::create_directories(serverPath);
     BOOST_LOG_TRIVIAL(trace) << "Open file: " << filename << " (" << buffer_ << ")\n";
-    string filedir=serverPath+'/'+filename;
-    filepath+='/'+filename;
+    string filedir=serverPath+clientPath;
+    fdir=filedir;
+    filepath+=clientPath;
+    if(!exists(filedir))
+        create_directories(filedir.substr(0,filedir.find_last_of("/")));
     fp_ = fopen(filedir.c_str(), "wb");
     if (fp_ == nullptr)
     {
@@ -101,14 +98,8 @@ void fileRsver::handle_write(const fileRsver::Error &error, size_t bytes_transfe
             BOOST_LOG_TRIVIAL(error) <<  "Filesize not matched! " << total_bytes_writen_<< "/" << filesize <<endl;
         return;
     }
-    total_bytes_writen_ += fwrite(buffer_, 1, bytes_transferred, fp_);
-    if(total_bytes_writen_==file_info_.filesize)
-    {
-        userFileDAO userFileDao;
-        usr_file_ptr usrFilePtr=userFileDao.selectTransFileByUsernameAndPath(username,filepath);
-        userFileDao.removeTransFileByUsernameAndPath(username,filepath);
-        userFileDao.insertfile(*usrFilePtr);
-    }
+    int write_len=fwrite(buffer_, 1, bytes_transferred, fp_);
+    total_bytes_writen_ += write_len;
     receive_file_content();
 }
 

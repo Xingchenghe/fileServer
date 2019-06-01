@@ -17,8 +17,8 @@ using std::string;
 using boost::system::error_code;
 using std::string;
 struct File_info {
-    typedef unsigned long long Size_type;
-    Size_type filesize;
+    typedef long Size_type;
+    long filesize;
     size_t filename_size;
     File_info() : filesize(0), filename_size(0) {}
 };
@@ -62,6 +62,7 @@ private:
     string username;
     string filename;
     string filepath;
+    string fdir;
 public:
     void setUsername(const string &username);
 };

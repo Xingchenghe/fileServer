@@ -34,7 +34,7 @@ usr_file_ptr userFileDAO::selectByUsernameAndPath(const string& username, const 
         usrFilePtr->setOwner(res->getString("owner"));
         usrFilePtr->setType(res->getInt("type"));
         usrFilePtr->setClientPath(res->getString("path"));
-        usrFilePtr->setLastModifiedTime(res->getInt("last_modified_time"));
+        usrFilePtr->setLastModifiedTime(res->getInt64("last_modified_time"));
         usrFilePtr->setMd5(res->getString("md5"));
         disconnect();
         return usrFilePtr;
@@ -85,7 +85,7 @@ usr_file_ptr userFileDAO::selectTransFileByUsernameAndPath(const string& usernam
         usrFilePtr->setOwner(res->getString("owner"));
         usrFilePtr->setType(res->getInt("type"));
         usrFilePtr->setClientPath(res->getString("path"));
-        usrFilePtr->setLastModifiedTime(res->getInt("last_modified_time"));
+        usrFilePtr->setLastModifiedTime(res->getInt64("last_modified_time"));
         usrFilePtr->setMd5(res->getString("md5"));
         disconnect();
         return usrFilePtr;
@@ -106,7 +106,7 @@ vector<userfile> userFileDAO::getUserFilesByUserName(const string& username)
         ufile.setOwner(res->getString("owner"));
         ufile.setType(res->getInt("type"));
         ufile.setClientPath(res->getString("path"));
-        ufile.setLastModifiedTime(res->getInt("last_modified_time"));
+        ufile.setLastModifiedTime(res->getInt64("last_modified_time"));
         ufile.setMd5(res->getString("md5"));
         userfiles.push_back(ufile);
     }

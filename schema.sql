@@ -49,3 +49,12 @@ create table transferingFile(
     md5 varchar (18) default '',
     foreign key fk_owner(owner) references user(name)
 )
+
+create table notify
+(
+    `name` varchar(64) NOT NULL DEFAULT '',
+    dev_mac varchar(18) not null default '',
+    is_change varchar(5) default 'yes',
+    primary key(name,dev_mac),
+    foreign key fk_notify_name(name) references user(name)
+);

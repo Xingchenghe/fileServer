@@ -4,11 +4,13 @@
 
 #include "userfile.h"
 
-const string &userfile::getOwner() const {
+const string &userfile::getOwner() const
+{
     return owner;
 }
 
-void userfile::setOwner(const string &owner) {
+void userfile::setOwner(const string &owner)
+{
     userfile::owner = owner;
 }
 

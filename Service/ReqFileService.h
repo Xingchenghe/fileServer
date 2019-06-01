@@ -16,7 +16,7 @@ private:
     string path;
 public:
     ReqFileService(string p):path(std::move(p)){}
-    string reqReady();
+    string reqReady(long lastModifiedTime);
     string reqFail();
 };
 

@@ -22,4 +22,4 @@ std::string errJson::toJson()
 
 sessionMgr sessionmgr;
 
-
+config cfg("config.ini");

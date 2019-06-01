@@ -12,16 +12,16 @@ using std::string;
 class file
 {
 protected:
-    time_t lastModifiedTime;
+    long lastModifiedTime;
     std::string md5;
     std::string clientPath;
 public:
-    file(std::string clientPath, std::string md5, time_t lastModifiedTime);
+    file(std::string clientPath, std::string md5, long lastModifiedTime);
     file()= default;
-    time_t get_lastModifiedTime();
+    long get_lastModifiedTime();
     std::string get_md5();
     std::string get_clientPath()const;
-    void setLastModifiedTime(time_t lastModifiedTime);
+    void setLastModifiedTime(long lastModifiedTime);
     void setMd5(const string &md5);
     void setClientPath(const string &Path);
 };

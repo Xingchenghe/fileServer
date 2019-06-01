@@ -20,6 +20,7 @@
 #include "Service/DeviceFileService.h"
 #include "Service/DeleteService.h"
 #include "Service/ReqFileService.h"
+#include "Service/TreeService.h"
 #include "DAO/userFileDAO.h"
 #include "fileSender.h"
 
@@ -46,6 +47,7 @@ void session::do_read_ctrl()
                         errJson ej(WRONGJSONFORMAT,"wrong json format");
                         strcpy(data_,ej.toJson().c_str());
                         do_write_ctrl(strlen(data_));
+                        memset(data_,0, sizeof(data_));
                         return;
                     }
 
@@ -135,19 +137,30 @@ void session::do_read_ctrl()
                             {
                                 userfile ufile;
                                 ufile.setOwner(cmdPt.get<string>("owner"));
-                                ufile.setType(cmdPt.get<int>("type"));
-                                ufile.setLastModifiedTime(cmdPt.get<int>("last_modified_time"));
+                                int type=cmdPt.get<int>("type");
+                                ufile.setType(type);
+                                ufile.setLastModifiedTime(cmdPt.get<long>("last_modified_time"));
                                 string rawpath=cmdPt.get<string>("path");
+                                replace_all(rawpath,"\\\\","/");
                                 replace_all(rawpath,"\\","/");
                                 ufile.setClientPath(rawpath);
                                 ufile.setMd5(cmdPt.get<string>("md5"));
                                 BOOST_LOG_TRIVIAL(trace)<<"device username:"<<username<<",mac_addr:"<<dev_mac<<" require to send file to server,file json:"<<endl<<data_;
-                                reply=sendService.sendReady();
-                                userFileDAO userFileDao;
-                                userFileDao.insertTransFile(ufile);
-                                strcpy(data_,reply.c_str());
-                                do_write_ctrl(reply.length());
-                                memset(data_,0, sizeof(data_));
+                                if(type==0)
+                                {
+                                    reply=sendService.sendReady();
+                                    userFileDAO userFileDao;
+                                    userFileDao.insertTransFile(ufile);
+                                    strcpy(data_,reply.c_str());
+                                    do_write_ctrl(reply.length());
+                                    memset(data_,0, sizeof(data_));
+                                }
+                                else if(type==1)
+                                {
+                                    string absDir=cfg.getBasePath()+username+rawpath;
+                                    if(!is_directory(absDir))
+                                        create_directories(absDir);
+                                }
                             }
                         }
                         else if(act==REQFILE)
@@ -165,22 +178,22 @@ void session::do_read_ctrl()
                             else
                             {
                                 string localpath=cmdPt.get<string>("path");
-                                string fullpath=basePath+username+localpath;
-                                usr_file_ptr usrFilePtr;
-                                userFileDAO userFileDao;
+                                string fullpath=cfg.getBasePath()+username+localpath;
+//                                usr_file_ptr usrFilePtr;
+//                                userFileDAO userFileDao;
                                 ReqFileService reqFileService(fullpath);
-                                usrFilePtr=userFileDao.selectByUsernameAndPath(username,localpath);
-                                if(usrFilePtr!= nullptr)
+//                                usrFilePtr=userFileDao.selectByUsernameAndPath(username,localpath);
+                                if(exists(fullpath))
                                 {
                                     if(is_regular_file(fullpath))
                                     {
                                         BOOST_LOG_TRIVIAL(trace)<<"send file to device,username:"<<username<<",mac_addr:"<<dev_mac<<",fullpath:"<<endl<<fullpath;
-                                        reply=reqFileService.reqReady();
+                                        reply= reqFileService.reqReady(last_write_time(fullpath));
                                         strcpy(data_,reply.c_str());
                                         do_write_ctrl(reply.length());
                                         memset(data_,0, sizeof(data_));
                                         string remote_addr=socket_.remote_endpoint().address().to_string();
-                                        sendfile(socket_.get_io_context(),remote_addr.c_str(),6687, fullpath.c_str());
+                                        sendfile(socket_.get_io_context(),remote_addr.c_str(),cfg.getDataPort(), fullpath.c_str());
                                     }
                                     else
                                     {
@@ -215,65 +228,12 @@ void session::do_read_ctrl()
                             else
                             {
                                 BOOST_LOG_TRIVIAL(trace)<<"device username:"<<username<<",mac_addr:"<<dev_mac<<" require server file list";
-                                userFileDAO userFileDao;
-                                const int max_files=50;
-                                auto files=userFileDao.getUserFilesByUserName(username);
-                                boost::property_tree::ptree pt;
-                                pt.put("action",SERVERFILES);
-                                boost::property_tree::ptree serverfiles;
-                                int i;
-                                if(files.empty())
-                                {
-                                    pt.add_child("info",serverfiles);
-                                    pt.put("has_more","no");
-                                    std::stringstream ss;
-                                    boost::property_tree::write_json(ss,pt);
-                                    strcpy(data_,ss.str().c_str());
-                                    do_write_ctrl(ss.str().length());
-                                    memset(data_,0, sizeof(data_));
-                                }
-                                else
-                                {
-                                    for(i=0;i<files.size();i++)
-                                    {
-                                        boost::property_tree::ptree onefile;
-                                        onefile.put("path",files[i].get_clientPath());
-                                        onefile.put("type",files[i].getType());
-                                        onefile.put("last_modified_time",files[i].get_lastModifiedTime());
-                                        onefile.put("md5",files[i].get_md5());
-                                        serverfiles.push_back(make_pair("",onefile));
-                                        if((i>0)&&(i%max_files==0))
-                                        {
-                                            pt.add_child("info",serverfiles);
-                                            if(i<files.size()-1)
-                                            {
-                                                pt.put("has_more","yes");
-                                            }
-                                            else if(i==files.size()-1)
-                                            {
-                                                pt.put("has_more","no");
-                                            }
-                                            std::stringstream ss;
-                                            boost::property_tree::write_json(ss,pt);
-                                            strcpy(data_,ss.str().c_str());
-                                            do_write_ctrl_norecur(ss.str().length());
-                                            memset(data_,0, sizeof(data_));
-                                            serverfiles.clear();
-                                            pt.clear();
-                                        }
-                                        else if(i==files.size()-1)
-                                        {
-                                            pt.put("has_more","no");
-                                            pt.add_child("info",serverfiles);
-                                            std::stringstream ss;
-                                            boost::property_tree::write_json(ss,pt);
-                                            strcpy(data_,ss.str().c_str());
-                                            do_write_ctrl(ss.str().length());
-                                            memset(data_,0, sizeof(data_));
-                                        }
-                                    }
-                                }
-
+                                string userpath=cfg.getBasePath()+username;
+                                reply=TreeService::dirJson(userpath);
+                                strcpy(data_,reply.c_str());
+                                do_write_ctrl(reply.length());
+//                                cout<<reply<<endl;
+                                memset(data_,0, sizeof(data_));
                             }
 
                         }
@@ -290,26 +250,22 @@ void session::do_read_ctrl()
                             }
                             else
                             {
-                                userFileDAO userFileDao;
                                 DeleteService deleteService;
                                 string delpath=cmdPt.get<string>("path");
                                 BOOST_LOG_TRIVIAL(trace)<<"device username:"<<username<<",mac_addr:"<<dev_mac<<" require delete server file,filepath:"<<delpath;
-                                usr_file_ptr usrFilePtr=userFileDao.selectByUsernameAndPath(username,delpath);
-                                string localPath=basePath+'/'+username+delpath;
-                                if(usrFilePtr== nullptr)
+                                string localPath=cfg.getBasePath()+username+delpath;
+                                if(exists(localPath))
                                 {
-                                    BOOST_LOG_TRIVIAL(error)<<"device username:"<<username<<",mac_addr:"<<dev_mac<<" require delete server file failed,filepath:"<<delpath;
-                                    reply=deleteService.DelFail(delpath);
+                                    string rootpath=cfg.getBasePath()+username;
+                                    long oldtime=last_write_time(rootpath);
+                                    remove_all(localPath);
+                                    last_write_time(rootpath,oldtime);
+                                    reply=deleteService.DelSuccess(delpath);
+                                    BOOST_LOG_TRIVIAL(trace)<<"device username:"<<username<<",mac_addr:"<<dev_mac<<" require delete server file success,filepath:"<<delpath;
                                 }
                                 else
                                 {
-                                    if(is_regular_file(localPath))
-                                    {
-                                        remove(localPath);
-                                        userFileDao.removeByUsernameAndPath(username, delpath);
-                                        reply=deleteService.DelSuccess(delpath);
-                                        BOOST_LOG_TRIVIAL(trace)<<"device username:"<<username<<",mac_addr:"<<dev_mac<<" require delete server file success,filepath:"<<delpath;
-                                    }
+                                    reply=deleteService.DelFail(delpath);
                                 }
                                 strcpy(data_,reply.c_str());
                                 do_write_ctrl(reply.length());
@@ -402,13 +358,16 @@ void session::parseCmdJson()
 session::~session()
 {
     BOOST_LOG_TRIVIAL(trace)<<"session:"<<s_id<<" destroyed";
-    sessionmgr.count(username);
-    sessionmgr.removeDevice(username,dev_mac);
-    sessionmgr.removeFromConnectedEndpoint(socket_.remote_endpoint().address().to_string());
-    sessionmgr.removeFromConnectedEndpointDevMap(socket_.remote_endpoint().address().to_string());
-    if(sessionmgr.isUserDeviceEmpty(username))
+    if(isLogin)
     {
-        sessionmgr.removeUser(username);
+        sessionmgr.count(username);
+        sessionmgr.removeDevice(username,dev_mac);
+        sessionmgr.removeFromConnectedEndpoint(socket_.remote_endpoint().address().to_string());
+        sessionmgr.removeFromConnectedEndpointDevMap(socket_.remote_endpoint().address().to_string());
+        if(sessionmgr.isUserDeviceEmpty(username))
+        {
+            sessionmgr.removeUser(username);
+        }
     }
     --session_id;
     std::cout<<"~session"<<endl;
@@ -438,4 +397,3 @@ const string &session::getDevMac() const
 tcp::socket &session::getSocket() {
     return socket_;
 }
-

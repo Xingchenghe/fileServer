@@ -4,14 +4,14 @@
 
 #include "file.h"
 
-file::file(std::string clientPath, std::string md5, time_t lastModifiedTime)
+file::file(std::string clientPath, std::string md5, long lastModifiedTime)
 {
     this->lastModifiedTime = lastModifiedTime;
     this->md5 = std::move(md5);
     this->clientPath = std::move(clientPath);
 }
 
-time_t file::get_lastModifiedTime()
+long file::get_lastModifiedTime()
 {
     return lastModifiedTime;
 }
@@ -26,7 +26,7 @@ std::string file::get_clientPath()const
     return clientPath;
 }
 
-void file::setLastModifiedTime(time_t lastModifiedTime)
+void file::setLastModifiedTime(long lastModifiedTime)
 {
     file::lastModifiedTime = lastModifiedTime;
 }

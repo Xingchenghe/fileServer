@@ -4,11 +4,12 @@
 
 #include "ReqFileService.h"
 
-string ReqFileService::reqReady()
+string ReqFileService::reqReady(long lastModifiedTime)
 {
     boost::property_tree::ptree pt;
     pt.put("action",REQFILEREADY);
     pt.put("path",path);
+    pt.put("lastModifiedTime",lastModifiedTime);
     std::stringstream ss;
     boost::property_tree::write_json(ss,pt);
     return ss.str();
